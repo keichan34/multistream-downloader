@@ -7,12 +7,16 @@ defmodule MultistreamDownloader.CLI do
 
   defp parse_args(argv) do
     parse = OptionParser.parse(argv,
-      switches: [ help: :boolean ],
-      aliases:  [ h:    :help    ])
+      switches: [ help:  :boolean,
+                  start: :boolean ],
+      aliases:  [ h:     :help,
+                  s:     :start   ])
 
     case parse do
       { [help: true], _, _} ->
         :help
+      { [start: true], _, _} ->
+        :start
       _ -> :help
     end
   end
@@ -21,5 +25,10 @@ defmodule MultistreamDownloader.CLI do
     IO.puts """
     usage: msd [options]
     """
+  end
+
+  defp process(:start) do
+    MultistreamDownloader.Downloader.Supervisor.start_link
+    :timer.sleep(:infinity)
   end
 end
