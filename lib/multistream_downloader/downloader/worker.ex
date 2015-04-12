@@ -5,22 +5,41 @@ defmodule MultistreamDownloader.Downloader.Worker do
   Starts the worker.
   """
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, :ok, opts)
+    GenServer.start_link(__MODULE__, [
+      endpoint: opts[:endpoint]
+    ], opts)
   end
 
   ## Server Callbacks
 
-  # One minute.
+  # 15 seconds.
   @poll_interval 15000
 
-  def init(:ok) do
-    Process.send_after self(), :poll_tick, @poll_interval
-    {:ok, HashDict.new}
+  def init(opts) do
+    Kernel.send self(), :poll_tick
+    {:ok, %{endpoint: opts[:endpoint], downloading: false, timer: nil}}
   end
 
   def handle_info(:poll_tick, state) do
-    IO.puts "Tick..."
-    Process.send_after self(), :poll_tick, @poll_interval
+    state = state |>
+      do_poll |>
+      enqueue_tick
+
     {:noreply, state}
+  end
+
+  defp enqueue_tick(state) do
+    if state[:downloading] == false do
+      timer_ref = Process.send_after self(), :poll_tick, @poll_interval
+      state = %{state | timer: timer_ref}
+    end
+
+    state
+  end
+
+  defp do_poll(state) do
+    IO.puts "Checking #{state[:endpoint]}..."
+
+    state
   end
 end

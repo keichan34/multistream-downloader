@@ -10,7 +10,7 @@ defmodule MultistreamDownloader.Downloader.Supervisor do
   def init(:ok) do
     children = [
       worker(MultistreamDownloader.Downloader.Worker,
-        [[name: @worker_name]])
+        [[endpoint: "http://www.google.com"]])
     ]
 
     supervise(children, strategy: :one_for_one)
