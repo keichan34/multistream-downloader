@@ -1,4 +1,4 @@
-defmodule MultistreamDownloader.CLI.Shell do
+defmodule MSD.CLI.Shell do
   def start_synchronous do
     prompt
   end

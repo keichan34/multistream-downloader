@@ -1,4 +1,4 @@
-defmodule MultistreamDownloader.Downloader.Worker do
+defmodule MSD.Poller.Worker do
   use GenServer
 
   @doc """
@@ -17,7 +17,7 @@ defmodule MultistreamDownloader.Downloader.Worker do
 
   def init(opts) do
     Kernel.send self(), :poll_tick
-    {:ok, %{endpoint: opts[:endpoint], downloading: false, timer: nil}}
+    {:ok, %{endpoint: opts[:endpoint], timer: nil}}
   end
 
   def handle_info(:poll_tick, state) do
@@ -29,12 +29,9 @@ defmodule MultistreamDownloader.Downloader.Worker do
   end
 
   defp enqueue_tick(state) do
-    if state[:downloading] == false do
-      timer_ref = Process.send_after self(), :poll_tick, @poll_interval
-      state = %{state | timer: timer_ref}
-    end
+    timer_ref = Process.send_after self(), :poll_tick, @poll_interval
 
-    state
+    %{state | timer: timer_ref}
   end
 
   defp do_poll(state) do

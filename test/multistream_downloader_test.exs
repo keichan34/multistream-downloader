@@ -1,4 +1,4 @@
-defmodule MultistreamDownloaderTest do
+defmodule MSDTest do
   use ExUnit.Case
 
   test "the truth" do

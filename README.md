@@ -1,4 +1,4 @@
-MultistreamDownloader
+MSD
 =====================
 
 ** TODO: Add description **
