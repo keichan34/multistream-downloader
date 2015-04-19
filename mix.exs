@@ -20,7 +20,10 @@ defmodule MSD.Mixfile do
   end
 
   defp deps do
-    [{:httpoison, "~> 0.6"}]
+    [
+      {:httpoison, "~> 0.6"},
+      {:extwitter, "~> 0.4"}
+    ]
   end
 
   defp escript_config do
