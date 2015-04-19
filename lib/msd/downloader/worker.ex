@@ -19,7 +19,7 @@ defmodule MSD.Downloader.Worker do
 
   def init(state) do
     IO.puts "[#{state[:identifier]}] Starting download..."
-    get state[:uri], [], timeout: @timeout, stream_to: self
+    get state[:uri], [], timeout: @timeout, stream_to: self, recv_timeout: @timeout
 
     {:ok, %{uri: state[:uri], identifier: state[:identifier], outfile: nil}}
   end

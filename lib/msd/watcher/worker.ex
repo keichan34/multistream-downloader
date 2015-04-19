@@ -1,7 +1,7 @@
 defmodule MSD.Watcher.Worker do
   use GenServer
 
-  import HTTPoison, only: [head: 3]
+  import HTTPoison, only: [get: 3]
 
   @doc """
   Timeout of the HTTP connection in ms. Default 1000ms (1s)
@@ -23,13 +23,12 @@ defmodule MSD.Watcher.Worker do
   def init(state) do
     Kernel.send self(), :poll_tick
     {:ok, %{uri: state[:uri], timer: nil, downloader: nil, downloader_monitor: nil,
-      identifier: state[:identifier]}}
+      identifier: state[:identifier], poller_ref: nil}}
   end
 
   def handle_info(:poll_tick, state) do
     state = state |>
-      do_poll |>
-      enqueue_tick
+      do_poll
 
     {:noreply, state}
   end
@@ -43,55 +42,73 @@ defmodule MSD.Watcher.Worker do
     {:noreply, state}
   end
 
-  defp enqueue_tick(%{downloader: nil} = state) do
+  def handle_info(%HTTPoison.AsyncStatus{code: 200}, state) do
+    state = state \
+      |> stop_async
+      |> handle_success
+
+    {:noreply, state}
+  end
+
+  def handle_info(%HTTPoison.AsyncStatus{code: code},
+    state) when code >= 300 and code <= 399 do
+    {:noreply, state}
+  end
+
+  def handle_info(%HTTPoison.AsyncHeaders{headers: headers}, state) do
+    if new_uri = headers["Location"] do
+      IO.puts "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
+
+      state = %{state | uri: new_uri} \
+        |> stop_async
+        |> do_poll
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(%HTTPoison.AsyncStatus{}, state) do
+    state = state \
+      |> stop_async
+      |> handle_error
+
+    {:noreply, state}
+  end
+
+  def handle_info(%HTTPoison.AsyncChunk{chunk: data}, state) do
+    IO.puts "[#{state[:identifier]}] warn: poller received #{byte_size data} bytes."
+    {:noreply, state}
+  end
+
+  def handle_info(%HTTPoison.AsyncEnd{id: ref}, state) do
+    if state[:poller_ref] == ref do
+      state = %{state | poller_ref: nil}
+    end
+
+    {:noreply, state}
+  end
+
+  defp enqueue_tick(%{downloader: nil, poller_ref: nil} = state) do
     timer_ref = Process.send_after self(), :poll_tick, @poll_interval
 
     %{state | timer: timer_ref}
   end
 
-  defp enqueue_tick(%{downloader: downloader_pid} = state) do
-    unless Process.alive?(downloader_pid) do
-      %{state | downloader: nil} |> enqueue_tick
-    else
-      state
-    end
-  end
-
   defp do_poll(state) do
     IO.puts "[#{state[:identifier]}] Checking..."
 
-    response = head state[:uri], [], timeout: @timeout
-    read_response(response, state)
-  end
-
-  defp read_response({:error, %HTTPoison.Error{}}, state) do
-    handle_error state
-  end
-
-  defp read_response({:ok, %HTTPoison.Response{status_code: 200}}, state) do
-    handle_success state
-  end
-
-  defp read_response({:ok, %HTTPoison.Response{status_code: code, headers: headers}},
-    state) when code >= 300 and code <= 399 do
-
-    if new_uri = headers["Location"] do
-      IO.puts "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
-
-      state = %{state | uri: new_uri} |>
-        do_poll
+    case get(state[:uri], [], timeout: @timeout, stream_to: self) do
+      {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
+        %{state | poller_ref: ref}
+      _ ->
+        handle_error(state)
     end
-
-    state
-  end
-
-  defp read_response({:ok, %HTTPoison.Response{}}, state) do
-    handle_error state
   end
 
   defp handle_error(state) do
     IO.puts "[#{state[:identifier]}] Down!"
     state
+      |> enqueue_tick
   end
 
   defp handle_success(state) do
@@ -101,5 +118,11 @@ defmodule MSD.Watcher.Worker do
 
     %{state | downloader: downloader_pid,
               downloader_monitor: Process.monitor(downloader_pid)}
+  end
+
+  defp stop_async(%{poller_ref: ref} = state) do
+    :hackney.stop_async ref
+    :hackney.close ref
+    %{state | poller_ref: nil}
   end
 end
