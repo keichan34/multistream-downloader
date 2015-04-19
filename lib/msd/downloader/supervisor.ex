@@ -5,8 +5,8 @@ defmodule MSD.Downloader.Supervisor do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def start_download(uri, save_to) do
-    Supervisor.start_child(__MODULE__, [%{uri: uri, save_to: save_to}])
+  def start_download(uri, identifier) do
+    Supervisor.start_child(__MODULE__, [%{uri: uri, identifier: identifier}])
   end
 
   def init(:ok) do

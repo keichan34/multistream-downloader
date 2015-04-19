@@ -11,10 +11,8 @@ defmodule MSD.Watcher.Worker do
   @doc """
   Starts the worker.
   """
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, [
-      uri: opts[:uri]
-    ], opts)
+  def start_link(%{uri: _, identifier: _} = state, opts \\ []) do
+    GenServer.start_link(__MODULE__, state, opts)
   end
 
   ## Server Callbacks
@@ -22,9 +20,10 @@ defmodule MSD.Watcher.Worker do
   # 15 seconds.
   @poll_interval 15000
 
-  def init(opts) do
+  def init(state) do
     Kernel.send self(), :poll_tick
-    {:ok, %{uri: opts[:uri], timer: nil, downloader: nil, downloader_monitor: nil}}
+    {:ok, %{uri: state[:uri], timer: nil, downloader: nil, downloader_monitor: nil,
+      identifier: state[:identifier]}}
   end
 
   def handle_info(:poll_tick, state) do
@@ -59,7 +58,7 @@ defmodule MSD.Watcher.Worker do
   end
 
   defp do_poll(state) do
-    IO.puts "Checking #{state[:uri]}..."
+    IO.puts "[#{state[:identifier]}] Checking..."
 
     response = head state[:uri], [], timeout: @timeout
     read_response(response, state)
@@ -77,7 +76,7 @@ defmodule MSD.Watcher.Worker do
     state) when code >= 300 and code <= 399 do
 
     if new_uri = headers["Location"] do
-      IO.puts "#{state[:uri]} => #{new_uri}"
+      IO.puts "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
 
       state = %{state | uri: new_uri} |>
         do_poll
@@ -91,14 +90,14 @@ defmodule MSD.Watcher.Worker do
   end
 
   defp handle_error(state) do
-    IO.puts "#{state[:uri]} is down!"
+    IO.puts "[#{state[:identifier]}] Down!"
     state
   end
 
   defp handle_success(state) do
-    IO.puts "#{state[:uri]} is up!"
+    IO.puts "[#{state[:identifier]}] Up!"
     {:ok, downloader_pid} = MSD.Downloader.Supervisor.start_download(
-      state[:uri], "")
+      state[:uri], state[:identifier])
 
     %{state | downloader: downloader_pid,
               downloader_monitor: Process.monitor(downloader_pid)}

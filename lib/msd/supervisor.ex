@@ -5,8 +5,9 @@ defmodule MSD.Supervisor do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def start_watcher(uri) do
-    Supervisor.start_child(MSD.Watcher.Supervisor, [[uri: uri]])
+  def start_watcher(uri, identifier) do
+    Supervisor.start_child(MSD.Watcher.Supervisor,
+      [%{uri: uri, identifier: identifier}])
   end
 
   def init(:ok) do
