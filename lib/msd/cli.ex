@@ -8,9 +8,9 @@ defmodule MSD.CLI do
   defp start do
     MSD.Supervisor.start_link
 
-    MSD.Supervisor.start_poller(
+    MSD.Supervisor.start_watcher(
       "http://www.theincomparable.com:4200/live")
-    MSD.Supervisor.start_poller(
+    MSD.Supervisor.start_watcher(
       "http://marco.org:8001/listen")
 
     Shell.start_synchronous

@@ -1,4 +1,4 @@
-defmodule MSD.Poller.Worker do
+defmodule MSD.Watcher.Worker do
   use GenServer
 
   import HTTPoison, only: [head: 3]

@@ -1,4 +1,4 @@
-defmodule MSD.Poller.Supervisor do
+defmodule MSD.Watcher.Supervisor do
   use Supervisor
 
   def start_link do
@@ -11,7 +11,7 @@ defmodule MSD.Poller.Supervisor do
 
   def init(:ok) do
     children = [
-      worker(MSD.Poller.Worker, [])
+      worker(MSD.Watcher.Worker, [])
     ]
 
     supervise(children, strategy: :simple_one_for_one)

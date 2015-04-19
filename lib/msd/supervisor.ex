@@ -5,13 +5,13 @@ defmodule MSD.Supervisor do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def start_poller(uri) do
-    Supervisor.start_child(MSD.Poller.Supervisor, [[uri: uri]])
+  def start_watcher(uri) do
+    Supervisor.start_child(MSD.Watcher.Supervisor, [[uri: uri]])
   end
 
   def init(:ok) do
     children = [
-      supervisor(MSD.Poller.Supervisor, []),
+      supervisor(MSD.Watcher.Supervisor, []),
       supervisor(MSD.Downloader.Supervisor, [])
     ]
 
