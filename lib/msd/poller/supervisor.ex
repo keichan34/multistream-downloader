@@ -2,11 +2,11 @@ defmodule MSD.Poller.Supervisor do
   use Supervisor
 
   def start_link do
-    Supervisor.start_link(__MODULE__, :ok)
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def start_poller(supervisor, endpoint) do
-    Supervisor.start_child(supervisor, [[endpoint: endpoint]])
+  def start_poller(uri) do
+    Supervisor.start_child(__MODULE__, [[uri: uri]])
   end
 
   def init(:ok) do

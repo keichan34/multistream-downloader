@@ -17,11 +17,11 @@ defmodule MSD.Downloader.Worker do
 
   ## Server Callbacks
 
-  def init(opts) do
-    IO.puts "Starting download of #{opts[:uri]}..."
-    get opts[:uri], [], timeout: @timeout, stream_to: self
+  def init(state) do
+    IO.puts "Starting download of #{state[:uri]}..."
+    get state[:uri], [], timeout: @timeout, stream_to: self
 
-    {:ok, %{uri: opts[:uri], save_to: opts[:save_to]}}
+    {:ok, %{uri: state[:uri], save_to: state[:save_to]}}
   end
 
   def handle_info(%HTTPoison.AsyncStatus{code: 200}, state) do
