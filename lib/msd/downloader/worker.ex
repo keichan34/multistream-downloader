@@ -19,7 +19,7 @@ defmodule MSD.Downloader.Worker do
 
   def init(state) do
     IO.puts "[#{state[:identifier]}] Starting download..."
-    get state[:uri], [], timeout: @timeout, stream_to: self, recv_timeout: @timeout
+    get state[:uri], [], timeout: @timeout, stream_to: self
 
     {:ok, %{uri: state[:uri], identifier: state[:identifier], outfile: nil}}
   end
@@ -43,9 +43,15 @@ defmodule MSD.Downloader.Worker do
   end
 
   def handle_info(%HTTPoison.AsyncChunk{chunk: data}, state) do
-    IO.puts "[#{state[:identifier]}] Received #{byte_size data} bytes."
-    state = write_to_outfile(data, state)
-    {:noreply, state}
+    bytes = byte_size data
+    IO.puts "[#{state[:identifier]}] Received #{bytes} bytes."
+
+    if bytes == 0 do
+      handle_info(%HTTPoison.AsyncEnd{}, state)
+    else
+      state = write_to_outfile(data, state)
+      {:noreply, state}
+    end
   end
 
   def handle_info(%HTTPoison.AsyncEnd{}, state) do
