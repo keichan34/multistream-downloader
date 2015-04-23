@@ -75,8 +75,7 @@ defmodule MSD.Watcher.Worker do
     {:noreply, state}
   end
 
-  def handle_info(%HTTPoison.AsyncChunk{chunk: data}, state) do
-    IO.puts "[#{state[:identifier]}] warn: poller received #{byte_size data} bytes."
+  def handle_info(%HTTPoison.AsyncChunk{}, state) do
     {:noreply, state}
   end
 
