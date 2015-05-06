@@ -12,8 +12,6 @@ defmodule MSD.Config do
   end
 
   def read!(file) do
-    {config, binding} = Code.eval_file(file)
-    IO.puts inspect(config)
-    IO.puts inspect(binding)
+    Code.eval_file(file)
   end
 end
