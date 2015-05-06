@@ -1,6 +1,4 @@
 defmodule MSD.CLI do
-  alias MSD.CLI.Shell
-
   def main(_) do
     start
   end
@@ -15,6 +13,6 @@ defmodule MSD.CLI do
     MSD.Supervisor.start_watcher(
       "http://amp.relay.fm:8000/stream", "RelayFM")
 
-    Shell.start_synchronous
+    :timer.sleep(:infinity)
   end
 end
