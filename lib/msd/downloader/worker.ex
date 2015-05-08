@@ -21,7 +21,8 @@ defmodule MSD.Downloader.Worker do
     IO.puts "[#{state[:identifier]}] Starting download..."
     get state[:uri], [], timeout: @timeout, stream_to: self
 
-    {:ok, %{uri: state[:uri], identifier: state[:identifier], outfile: nil}}
+    {:ok, %{uri: state[:uri], identifier: state[:identifier], outfile: nil,
+      intermediate_filename: nil, result_filename: nil}}
   end
 
   def handle_info(%HTTPoison.AsyncStatus{code: 200}, state) do
@@ -70,10 +71,11 @@ defmodule MSD.Downloader.Worker do
   defp create_outfile(%{outfile: nil} = state) do
     date = Timex.Date.local
     date_string = Timex.DateFormat.format!(date, "%Y-%m-%d_%H-%M-%S", :strftime)
-    filename = "#{state[:identifier]}_#{date_string}.mp3"
+    filename = "_#{state[:identifier]}_#{date_string}.mp3"
+    result_filename = "#{state[:identifier]}_#{date_string}.mp3"
     File.mkdir_p(Path.relative_to_cwd "msd_out")
     {:ok, file} = File.open Path.relative_to_cwd("msd_out/#{filename}"), [:write]
-    %{state | outfile: file}
+    %{state | outfile: file, intermediate_filename: filename, result_filename: result_filename}
   end
 
   defp create_outfile(state), do: state
@@ -81,7 +83,11 @@ defmodule MSD.Downloader.Worker do
   defp teardown_outfile(%{outfile: file} = state) do
     if file do
       File.close file
-      state = %{state | outfile: nil}
+      :file.rename(
+        Path.relative_to_cwd("msd_out/#{state.intermediate_filename}"),
+        Path.relative_to_cwd("msd_out/#{state.result_filename}")
+      )
+      state = %{state | outfile: nil, intermediate_filename: nil, result_filename: nil}
     end
     state
   end
