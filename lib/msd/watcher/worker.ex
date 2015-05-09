@@ -17,13 +17,15 @@ defmodule MSD.Watcher.Worker do
 
   ## Server Callbacks
 
-  # 15 seconds.
-  @poll_interval 15000
+  # Maximum poll interval. 600 seconds = 10 minutes.
+  @max_poll_interval 600000
+  # 2^n - 1 = 600; 2^n = 601; n = log2(601); n = 9.2312211807
+  @max_poll_count 10
 
   def init(state) do
     Kernel.send self(), :poll_tick
     {:ok, %{uri: state[:uri], timer: nil, downloader: nil, downloader_monitor: nil,
-      identifier: state[:identifier], poller_ref: nil}}
+      identifier: state[:identifier], poller_ref: nil, polls: 0}}
   end
 
   def handle_info(:poll_tick, state) do
@@ -35,7 +37,7 @@ defmodule MSD.Watcher.Worker do
 
   def handle_info({:DOWN, _, :process, pid, :normal}, state) do
     if pid == state[:downloader] do
-      state = %{state | downloader: nil, downloader_monitor: nil} |>
+      state = %{state | downloader: nil, downloader_monitor: nil, polls: 0} |>
         enqueue_tick
     end
 
@@ -87,14 +89,23 @@ defmodule MSD.Watcher.Worker do
     {:noreply, state}
   end
 
-  defp enqueue_tick(%{downloader: nil, poller_ref: nil} = state) do
-    timer_ref = Process.send_after self(), :poll_tick, @poll_interval
+  defp enqueue_tick(%{downloader: nil, poller_ref: nil, polls: polls} = state) do
+    # Exponential backoff, in 1-second increments.
+    int = if polls >= @max_poll_count do
+      @max_poll_interval
+    else
+      (trunc(:math.pow(2, max(polls, 1))) - 1) * 1000
+    end
+    IO.puts "[#{state[:identifier]}] Will try again in #{trunc int / 1000}s."
+    timer_ref = Process.send_after self(), :poll_tick, int
 
     %{state | timer: timer_ref}
   end
 
-  defp do_poll(state) do
+  defp do_poll(%{polls: polls} = state) do
     IO.puts "[#{state[:identifier]}] Checking..."
+
+    state = %{state | polls: polls + 1}
 
     case get(state[:uri], [], timeout: @timeout, stream_to: self) do
       {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
