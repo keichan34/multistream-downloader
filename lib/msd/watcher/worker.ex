@@ -97,7 +97,7 @@ defmodule MSD.Watcher.Worker do
       (trunc(:math.pow(2, max(polls, 1))) - 1) * 1000
     end
 
-    int = int + :crypto.rand_uniform(1, 100) * 10
+    int = int + :crypto.rand_uniform(-50, 50) * 10
 
     IO.puts "[#{state[:identifier]}] Will try again in #{Float.round(int / 1000, 1)}s."
     timer_ref = Process.send_after self(), :poll_tick, int
