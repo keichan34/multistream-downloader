@@ -17,10 +17,10 @@ defmodule MSD.Watcher.Worker do
 
   ## Server Callbacks
 
-  # Maximum poll interval. 600 seconds = 10 minutes.
-  @max_poll_interval 600000
-  # 2^n - 1 = 600; 2^n = 601; n = log2(601); n = 9.2312211807
-  @max_poll_count 10
+  # Maximum poll interval. 300 seconds = 5 minutes.
+  @max_poll_interval 300000
+  # 2^n - 1 = 300; 2^n = 301; n = log2(301); n = 8.2336196768
+  @max_poll_count 9
 
   def init(state) do
     Kernel.send self(), :poll_tick
