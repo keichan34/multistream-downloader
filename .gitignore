@@ -4,4 +4,4 @@ erl_crash.dump
 *.ez
 /msd
 /msd_out
-
+/config/config.exs

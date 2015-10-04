@@ -1,6 +1,7 @@
 defmodule MSD.Downloader.Worker do
   use GenServer
 
+  require Logger
   import HTTPoison, only: [get: 3]
 
   @doc """
@@ -18,7 +19,7 @@ defmodule MSD.Downloader.Worker do
   ## Server Callbacks
 
   def init(state) do
-    IO.puts "[#{state[:identifier]}] Starting download..."
+    Logger.info "[#{state[:identifier]}] Starting download..."
     get state[:uri], [], timeout: @timeout, stream_to: self
 
     {:ok, %{uri: state[:uri], identifier: state[:identifier], outfile: nil,
@@ -26,7 +27,7 @@ defmodule MSD.Downloader.Worker do
   end
 
   def handle_info(%HTTPoison.AsyncStatus{code: 200}, state) do
-    IO.puts "[#{state[:identifier]}] Started."
+    Logger.info "[#{state[:identifier]}] Started."
 
     state = create_outfile(state)
     {:noreply, state}
@@ -34,7 +35,7 @@ defmodule MSD.Downloader.Worker do
 
   def handle_info(%HTTPoison.AsyncStatus{code: error}, state) do
     # Ignore an error.
-    IO.puts "[#{state[:identifier]}] Got #{error}, exiting."
+    Logger.info "[#{state[:identifier]}] Got #{error}, exiting."
     {:stop, :normal, state}
   end
 
@@ -45,7 +46,7 @@ defmodule MSD.Downloader.Worker do
 
   def handle_info(%HTTPoison.AsyncChunk{chunk: data}, state) do
     bytes = byte_size data
-    IO.puts "[#{state[:identifier]}] Received #{bytes} bytes."
+    Logger.info "[#{state[:identifier]}] Received #{bytes} bytes."
 
     if bytes == 0 do
       handle_info(%HTTPoison.AsyncEnd{}, state)
@@ -56,13 +57,13 @@ defmodule MSD.Downloader.Worker do
   end
 
   def handle_info(%HTTPoison.AsyncEnd{}, state) do
-    IO.puts "[#{state[:identifier]}] Finished."
+    Logger.info "[#{state[:identifier]}] Finished."
     state = teardown_outfile(state)
     {:stop, :normal, state}
   end
 
   def handle_info(msg, state) do
-    IO.puts "[#{state[:identifier]}] Received: #{inspect msg}"
+    Logger.info "[#{state[:identifier]}] Received: #{inspect msg}"
     {:noreply, state}
   end
 
@@ -73,8 +74,8 @@ defmodule MSD.Downloader.Worker do
     date_string = Timex.DateFormat.format!(date, "%Y-%m-%d_%H-%M-%S", :strftime)
     filename = "_#{state[:identifier]}_#{date_string}.mp3"
     result_filename = "#{state[:identifier]}_#{date_string}.mp3"
-    File.mkdir_p(Path.relative_to_cwd "msd_out")
-    {:ok, file} = File.open Path.relative_to_cwd("msd_out/#{filename}"), [:write]
+    File.mkdir_p(MSD.out_dir)
+    {:ok, file} = File.open MSD.out_dir(filename), [:write]
     %{state | outfile: file, intermediate_filename: filename, result_filename: result_filename}
   end
 
@@ -84,8 +85,8 @@ defmodule MSD.Downloader.Worker do
     if file do
       File.close file
       :file.rename(
-        Path.relative_to_cwd("msd_out/#{state.intermediate_filename}"),
-        Path.relative_to_cwd("msd_out/#{state.result_filename}")
+        MSD.out_dir(state.intermediate_filename),
+        MSD.out_dir(state.result_filename)
       )
       state = %{state | outfile: nil, intermediate_filename: nil, result_filename: nil}
     end

@@ -15,19 +15,29 @@ defmodule MSD.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger,
-                    :httpoison]]
+    [
+      applications: [
+        :logger,
+        :httpoison,
+        :tzdata,
+        :timex
+      ],
+      mod: {MSD, []}
+    ]
   end
 
   defp deps do
     [
-      {:httpoison, "~> 0.6"},
-      {:timex, "~> 0.13"}
+      {:httpoison, "~> 0.7.0"},
+      {:timex, "~> 0.19.0"},
+      {:exrm, "~> 0.19.0"}
     ]
   end
 
   defp escript_config do
-    [main_module: MSD.CLI,
-     name: "msd"]
+    [
+      main_module: MSD.CLI,
+      name: "msd"
+    ]
   end
 end

@@ -1,6 +1,7 @@
 defmodule MSD.Watcher.Worker do
   use GenServer
 
+  require Logger
   import HTTPoison, only: [get: 3]
 
   @doc """
@@ -59,7 +60,7 @@ defmodule MSD.Watcher.Worker do
 
   def handle_info(%HTTPoison.AsyncHeaders{headers: headers}, state) do
     if new_uri = headers["Location"] do
-      IO.puts "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
+      Logger.info "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
 
       state = %{state | uri: new_uri} \
         |> stop_async
@@ -99,14 +100,14 @@ defmodule MSD.Watcher.Worker do
 
     int = int + :crypto.rand_uniform(-50, 50) * 10
 
-    IO.puts "[#{state[:identifier]}] Will try again in #{Float.round(int / 1000, 1)}s."
+    Logger.info "[#{state[:identifier]}] Will try again in #{Float.round(int / 1000, 1)}s."
     timer_ref = Process.send_after self(), :poll_tick, int
 
     %{state | timer: timer_ref}
   end
 
   defp do_poll(%{polls: polls} = state) do
-    IO.puts "[#{state[:identifier]}] Checking..."
+    Logger.info "[#{state[:identifier]}] Checking..."
 
     state = %{state | polls: polls + 1}
 
@@ -119,13 +120,13 @@ defmodule MSD.Watcher.Worker do
   end
 
   defp handle_error(state) do
-    IO.puts "[#{state[:identifier]}] Down!"
+    Logger.info "[#{state[:identifier]}] Down!"
     state
       |> enqueue_tick
   end
 
   defp handle_success(state) do
-    IO.puts "[#{state[:identifier]}] Up!"
+    Logger.info "[#{state[:identifier]}] Up!"
     {:ok, downloader_pid} = MSD.Downloader.Supervisor.start_download(
       state[:uri], state[:identifier])
 
