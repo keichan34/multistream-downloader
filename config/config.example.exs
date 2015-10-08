@@ -5,3 +5,6 @@ use Mix.Config
 config :msd,
   config_file: "./msd_config.exs",
   out: "./msd_out"
+
+config :logger, :console,
+  format: "$date $time [$level] $message\n"
