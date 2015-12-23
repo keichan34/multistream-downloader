@@ -10,7 +10,7 @@ defmodule MSD.Mixfile do
 
     [app: :msd,
      version: "0.0.2-#{commit_count}-#{git_sha}",
-     elixir: "~> 1.0",
+     elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      escript: escript_config,
@@ -34,8 +34,9 @@ defmodule MSD.Mixfile do
 
   defp deps do
     [
-      {:httpoison, "~> 0.7.0"},
-      {:timex, "~> 0.19.0"},
+      {:httpoison, "~> 0.8"},
+      {:timex, "~> 0.19.5"},
+      {:tzdata, "== 0.1.8", override: true},
       {:exrm, "~> 0.19.0"}
     ]
   end
