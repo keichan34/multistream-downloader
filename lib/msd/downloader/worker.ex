@@ -62,6 +62,12 @@ defmodule MSD.Downloader.Worker do
     {:stop, :normal, state}
   end
 
+  def handle_info(%HTTPoison.Error{reason: {:closed, reason}}, state) do
+    Logger.info "[#{state[:identifier]}] Closed with reason: #{reason}"
+    state = teardown_outfile(state)
+    {:stop, :normal, state}
+  end
+
   def handle_info(msg, state) do
     Logger.info "[#{state[:identifier]}] Received: #{inspect msg}"
     {:noreply, state}

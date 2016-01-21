@@ -59,12 +59,16 @@ defmodule MSD.Watcher.Worker do
   end
 
   def handle_info(%HTTPoison.AsyncHeaders{headers: headers}, state) do
-    if new_uri = headers["Location"] do
-      Logger.info "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
+    headers_in_map = Enum.into(headers, %{})
+    state = case Map.fetch(headers_in_map, "Location") do
+      {:ok, new_uri} ->
+        Logger.info "[#{state[:identifier]}] #{state[:uri]} => #{new_uri}"
 
-      state = %{state | uri: new_uri} \
-        |> stop_async
-        |> do_poll
+        %{state | uri: new_uri} \
+          |> stop_async
+          |> do_poll
+      :error ->
+        state
     end
 
     {:noreply, state}
