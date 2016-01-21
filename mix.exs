@@ -35,9 +35,8 @@ defmodule MSD.Mixfile do
   defp deps do
     [
       {:httpoison, "~> 0.8"},
-      {:timex, "~> 0.19.5"},
-      {:tzdata, "== 0.1.8", override: true},
-      {:exrm, "~> 0.19.0"}
+      {:timex, "~> 1.0.0"},
+      {:exrm, "~> 1.0.0-rc7"}
     ]
   end
 
