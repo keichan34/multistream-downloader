@@ -98,7 +98,8 @@ defmodule MSD.Watcher.Worker do
 
   def handle_info(%HTTPoison.Error{reason: reason}, state) do
     Logger.info "[#{state[:identifier]}] Got socket error: #{reason}"
-    state |> enqueue_tick()
+    state = state |> enqueue_tick()
+    {:noreply, state}
   end
 
   defp enqueue_tick(%{downloader: nil, poller_ref: nil, polls: polls} = state) do
