@@ -13,8 +13,8 @@ defmodule MSD.Mixfile do
      elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     escript: escript_config,
-     deps: deps]
+     escript: escript_config(),
+     deps: deps()]
   end
 
   # Configuration for the OTP application
@@ -35,7 +35,7 @@ defmodule MSD.Mixfile do
   defp deps do
     [
       {:httpoison, "~> 0.8"},
-      {:timex, "~> 1.0.0"},
+      {:timex, "~> 3.1.0"},
       {:exrm, "~> 1.0.0-rc7"}
     ]
   end

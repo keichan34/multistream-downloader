@@ -4,14 +4,11 @@ defmodule MSD.Downloader.Worker do
   require Logger
   import HTTPoison, only: [get: 3]
 
-  @doc """
-  Timeout of the HTTP connection in ms. Default 10,000ms (10s)
-  """
+
+  # Timeout of the HTTP connection in ms. Default 10,000ms (10s)
   @timeout 10000
 
-  @doc """
-  Starts the worker.
-  """
+  # Starts the worker.
   def start_link(%{uri: _, identifier: _} = state, opts \\ []) do
     GenServer.start_link(__MODULE__, state, opts)
   end
@@ -20,7 +17,7 @@ defmodule MSD.Downloader.Worker do
 
   def init(state) do
     Logger.info "[#{state[:identifier]}] Starting download..."
-    get state[:uri], [], timeout: @timeout, stream_to: self
+    get state[:uri], [], timeout: @timeout, stream_to: self()
 
     {:ok, %{uri: state[:uri], identifier: state[:identifier], outfile: nil,
       intermediate_filename: nil, result_filename: nil}}
@@ -76,8 +73,8 @@ defmodule MSD.Downloader.Worker do
   ## Internal methods
 
   defp create_outfile(%{outfile: nil} = state) do
-    date = Timex.Date.local
-    date_string = Timex.DateFormat.format!(date, "%Y-%m-%d_%H-%M-%S", :strftime)
+    date = Timex.local
+    date_string = Timex.format!(date, "%Y-%m-%d_%H-%M-%S", :strftime)
     filename = "_#{state[:identifier]}_#{date_string}.mp3"
     result_filename = "#{state[:identifier]}_#{date_string}.mp3"
     File.mkdir_p(MSD.out_dir)
@@ -94,9 +91,10 @@ defmodule MSD.Downloader.Worker do
         MSD.out_dir(state.intermediate_filename),
         MSD.out_dir(state.result_filename)
       )
-      state = %{state | outfile: nil, intermediate_filename: nil, result_filename: nil}
+      %{state | outfile: nil, intermediate_filename: nil, result_filename: nil}
+    else
+      state
     end
-    state
   end
 
   defp write_to_outfile(bytes, %{outfile: file} = state) do

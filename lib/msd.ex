@@ -3,8 +3,8 @@ defmodule MSD do
 
   def start(_type, _args) do
     root_sup = {:ok, _} = MSD.Supervisor.start_link
-    if config_file do
-      MSD.Config.read!(config_file)
+    if config_file() do
+      MSD.Config.read!(config_file())
     end
     root_sup
   end
@@ -15,5 +15,5 @@ defmodule MSD do
   def out_dir,
     do: Application.get_env(:msd, :out)
   def out_dir(other),
-    do: Path.join(out_dir, other)
+    do: Path.join(out_dir(), other)
 end

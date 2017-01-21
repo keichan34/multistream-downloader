@@ -4,9 +4,7 @@ defmodule MSD.Watcher.Worker do
   require Logger
   import HTTPoison, only: [get: 3]
 
-  @doc """
-  Timeout of the HTTP connection in ms. Default 1000ms (1s)
-  """
+  # Timeout of the HTTP connection in ms. Default 1000ms (1s)
   @timeout 1000
 
   @doc """
@@ -37,9 +35,11 @@ defmodule MSD.Watcher.Worker do
   end
 
   def handle_info({:DOWN, _, :process, pid, :normal}, state) do
-    if pid == state[:downloader] do
-      state = %{state | downloader: nil, downloader_monitor: nil, polls: 0} |>
+    state = if pid == state[:downloader] do
+      %{state | downloader: nil, downloader_monitor: nil, polls: 0} |>
         enqueue_tick
+    else
+      state
     end
 
     {:noreply, state}
@@ -87,11 +87,18 @@ defmodule MSD.Watcher.Worker do
   end
 
   def handle_info(%HTTPoison.AsyncEnd{id: ref}, state) do
-    if state[:poller_ref] == ref do
-      state = %{state | poller_ref: nil}
+    state = if state[:poller_ref] == ref do
+      %{state | poller_ref: nil}
+    else
+      state
     end
 
     {:noreply, state}
+  end
+
+  def handle_info(%HTTPoison.Error{reason: reason}, state) do
+    Logger.info "[#{state[:identifier]}] Got socket error: #{reason}"
+    state |> enqueue_tick()
   end
 
   defp enqueue_tick(%{downloader: nil, poller_ref: nil, polls: polls} = state) do
@@ -115,7 +122,7 @@ defmodule MSD.Watcher.Worker do
 
     state = %{state | polls: polls + 1}
 
-    case get(state[:uri], [], timeout: @timeout, stream_to: self) do
+    case get(state[:uri], [], timeout: @timeout, stream_to: self()) do
       {:ok, %HTTPoison.AsyncResponse{id: ref}} ->
         %{state | poller_ref: ref}
       _ ->
@@ -125,8 +132,7 @@ defmodule MSD.Watcher.Worker do
 
   defp handle_error(state) do
     Logger.info "[#{state[:identifier]}] Down!"
-    state
-      |> enqueue_tick
+    state |> enqueue_tick()
   end
 
   defp handle_success(state) do
